@@ -10,7 +10,8 @@ git clone -b ${version} https://github.com/FairRootGroup/FairRoot $sourcedir
 pushd $sourcedir
 export FAIRROOTPATH="$(realpath ./install)"
 cmake -S. -Bbuild \
-  -DCMAKE_INSTALL_PREFIX=$FAIRROOTPATH
+  -DCMAKE_INSTALL_PREFIX=$FAIRROOTPATH \
+  -DCMAKE_CXX_STANDARD=17
 cmake --build build --target install -j @NCPUS@
 pushd build
 ctest --output-on-failure -j @NCPUS@

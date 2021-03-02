@@ -16,7 +16,7 @@ find_package(Patch REQUIRED)
 find_package(UnixCommands)
 set(patch $<TARGET_FILE:Patch::patch> --merge)
 
-set(PROJECT_MIN_CXX_STANDARD 14)
+set(PROJECT_MIN_CXX_STANDARD 17)
 
 include(FairSoftLib)
 set_fairsoft_defaults()
@@ -126,7 +126,7 @@ ExternalProject_Add(fmt
 )
 
 list(APPEND packages dds)
-set(dds_version "3.5.3")
+set(dds_version "3.5.9")
 ExternalProject_Add(dds
   GIT_REPOSITORY https://github.com/FairRootGroup/DDS GIT_TAG ${dds_version}
   ${CMAKE_DEFAULT_ARGS} CMAKE_ARGS
@@ -177,7 +177,7 @@ ExternalProject_Add(flatbuffers
 
 if (NOT PACKAGE_SET STREQUAL fairmqdev)
   list(APPEND packages fairmq)
-  set(fairmq_version "1.4.26")
+  set(fairmq_version "1.4.31")
   ExternalProject_Add(fairmq
     GIT_REPOSITORY https://github.com/FairRootGroup/FairMQ GIT_TAG v${fairmq_version}
     ${CMAKE_DEFAULT_ARGS} CMAKE_ARGS
@@ -189,10 +189,9 @@ if (NOT PACKAGE_SET STREQUAL fairmqdev)
   )
 
   list(APPEND packages odc)
-  set(odc_version "0.10")
+  set(odc_version "0.16")
   ExternalProject_Add(odc
     GIT_REPOSITORY https://github.com/FairRootGroup/ODC GIT_TAG ${odc_version}
-    PATCH_COMMAND ${patch} -p1 -i "${CMAKE_SOURCE_DIR}/legacy/odc/fix_protoc_args.patch"
     ${CMAKE_DEFAULT_ARGS}
     DEPENDS boost dds fairlogger fairmq ${extract_source_cache_target}
     ${LOG_TO_FILE}
@@ -265,7 +264,7 @@ if(PACKAGE_SET STREQUAL full)
   )
 
   list(APPEND packages geant4)
-  set(geant4_version "10.7.0")
+  set(geant4_version "10.7.1")
   if(GEANT4MT)
     set(mt
       "-DGEANT4_BUILD_MULTITHREADED=ON"
@@ -274,14 +273,9 @@ if(PACKAGE_SET STREQUAL full)
     set(mt
       "-DGEANT4_BUILD_MULTITHREADED=OFF")
   endif()
-  if(APPLE)
-    set(patch_support_brewed_gl_macos
-      PATCH_COMMAND ${patch} -p1 -i "${CMAKE_SOURCE_DIR}/legacy/geant4/support_brewed_gl.patch")
-  endif()
   ExternalProject_Add(geant4
     URL https://gitlab.cern.ch/geant4/geant4/-/archive/v${geant4_version}/geant4-v${geant4_version}.tar.gz
-    URL_HASH SHA256=c991a139210c7f194720c900b149405090058c00beb5a0d2fac5c40c42a262d4
-    ${patch_support_brewed_gl_macos}
+    URL_HASH SHA256=2aa7cb4b231081e0a35d84c707be8f35e4edc4e97aad2b233943515476955293
     ${CMAKE_DEFAULT_ARGS} CMAKE_ARGS
       "-DGEANT4_BUILD_CXXSTD=${CMAKE_CXX_STANDARD}"
       ${mt}
@@ -302,12 +296,13 @@ if(PACKAGE_SET STREQUAL full)
   )
 
   list(APPEND packages root)
-  set(root_version "6.20.08")
+  set(root_version "6.22.06")
+  if(APPLE AND CMAKE_VERSION VERSION_GREATER 3.15)
+    set(root_builtin_glew "-Dbuiltin_glew=ON")
+  endif()
   ExternalProject_Add(root
     URL https://root.cern/download/root_v${root_version}.source.tar.gz
-    URL_HASH SHA256=d02f224b4908c814a99648782b927c353d44db79dea2cadea86138c1afc23ae9
-    PATCH_COMMAND ${patch} -p1 -i "${CMAKE_SOURCE_DIR}/legacy/root/fix_find_glew_cmake.patch"
-    COMMAND ${patch} -p1 -i "${CMAKE_SOURCE_DIR}/legacy/root/xrootd_5_compat.patch"
+    URL_HASH SHA256=c4688784a7e946cd10b311040b6cf0b2f75125a7520e04d1af0b746505911b57
     ${CMAKE_DEFAULT_ARGS} CMAKE_ARGS
       "-Daqua=ON"
       "-Dasimage=ON"
@@ -335,6 +330,7 @@ if(PACKAGE_SET STREQUAL full)
       "-Dxml=ON"
       "-Dxrootd=ON"
       ${python}
+      ${root_builtin_glew}
     DEPENDS pythia6 pythia8 vc ${extract_source_cache_target}
     ${LOG_TO_FILE}
   )
@@ -348,19 +344,9 @@ if(PACKAGE_SET STREQUAL full)
   )
 
   list(APPEND packages geant3)
-  set(geant3_version "3-7_fairsoft")
-  if(    CMAKE_Fortran_COMPILER_VERSION VERSION_GREATER_EQUAL 7
-     AND CMAKE_Fortran_COMPILER_VERSION VERSION_LESS 8)
-    # see https://github.com/alisw/alidist/issues/1345
-    set(geant3_patch_fix_gfortran_7 PATCH_COMMAND ${patch} -p1 -i "${CMAKE_SOURCE_DIR}/legacy/geant3/fix_gfortran_7.patch")
-    set(geant3_patch_fix_string_handling COMMAND ${patch} -p1 -i "${CMAKE_SOURCE_DIR}/legacy/geant3/fix_string_handling_in_ertrak.patch")
-  else()
-    set(geant3_patch_fix_string_handling PATCH_COMMAND ${patch} -p1 -i "${CMAKE_SOURCE_DIR}/legacy/geant3/fix_string_handling_in_ertrak.patch")
-  endif()
+  set(geant3_version "3-8_fairsoft")
   ExternalProject_Add(geant3
     GIT_REPOSITORY https://github.com/FairRootGroup/geant3 GIT_TAG v${geant3_version}
-    ${geant3_patch_fix_gfortran_7}
-    ${geant3_patch_fix_string_handling}
     ${CMAKE_DEFAULT_ARGS} CMAKE_ARGS
       "-DBUILD_GCALOR=ON"
     DEPENDS root vmc ${extract_source_cache_target}
